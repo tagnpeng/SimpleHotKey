@@ -14,8 +14,8 @@
             filePath = "SimpleHotKey/AppShortcutEditorView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "65"
-            endingLineNumber = "65"
+            startingLineNumber = "58"
+            endingLineNumber = "58"
             landmarkName = "listenForKeyPress(item:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -30,8 +30,8 @@
             filePath = "SimpleHotKey/AppShortcutEditorView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "64"
-            endingLineNumber = "64"
+            startingLineNumber = "57"
+            endingLineNumber = "57"
             landmarkName = "listenForKeyPress(item:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -39,16 +39,16 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "82A0163C-36D3-42D7-9A27-A1E35817789B"
+            uuid = "78419A38-7161-401D-AF24-126DD4976A83"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "SimpleHotKey/ShortcutManager.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "187"
-            endingLineNumber = "187"
-            landmarkName = "bringAppToFront(appIdentifier:)"
+            startingLineNumber = "114"
+            endingLineNumber = "114"
+            landmarkName = "handleKeyPress(event:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

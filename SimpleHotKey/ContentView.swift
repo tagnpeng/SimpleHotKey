@@ -13,14 +13,13 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
-    private var shortcutManager: ShortcutManager = ShortcutManager()
     
     var body: some View {
         NavigationSplitView {
             List {
                 ForEach(items, id: \.appIdentifier) { item in
                     NavigationLink {
-                        AppShortcutEditorView(item: item, shortcutManager: shortcutManager)
+                        AppShortcutEditorView(item: item)
                     } label: {
                         HStack {
                             // 强制解包 iconData 并将其转换为 NSImage
@@ -53,8 +52,8 @@ struct ContentView: View {
             Text("Select an item")
         }
         .onAppear {
-            self.shortcutManager.setItem(items: self.items)
-            self.shortcutManager.startListening()
+            KeyboardMonitorSingleton.shared.setItem(items: self.items)
+            KeyboardMonitorSingleton.shared.startListening()
         }
     }
     
@@ -112,7 +111,7 @@ struct ContentView: View {
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
-                shortcutManager.remove(item: items[index])
+                KeyboardMonitorSingleton.shared.remove(item: items[index])
                 modelContext.delete(items[index])
             }
         }

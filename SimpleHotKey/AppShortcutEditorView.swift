@@ -5,7 +5,6 @@ struct AppShortcutEditorView: View {
     @Bindable var item: Item // 传入的 Item 对象，直接绑定到视图
     @State private var isListeningForKeyPress = false // 控制是否开始监听
     @State private var showPopup = false // 控制弹出框显示状态
-    var shortcutManager: ShortcutManager
     @State private var monitor: Any? = nil
 
     var body: some View {
@@ -32,9 +31,6 @@ struct AppShortcutEditorView: View {
                 Text("控制是否打开应用:")
                     .frame(width: 120, alignment: .leading)
                 Toggle("", isOn: $item.isEnabled)
-                    .onChange(of: item.isEnabled) { _ in
-//                        saveItem()  // 实时保存
-                    }
             }
             
             // Enable Another Option 开关
@@ -42,9 +38,6 @@ struct AppShortcutEditorView: View {
                 Text("切换应用隐藏:")
                     .frame(width: 120, alignment: .leading)
                 Toggle("", isOn: $item.isAnotherOptionEnabled)
-                    .onChange(of: item.isAnotherOptionEnabled) { _ in
-//                        saveItem()  // 实时保存
-                    }
             }
         }
         .padding()
@@ -70,11 +63,10 @@ struct AppShortcutEditorView: View {
             // 获取按键的字符
             let shortcut = createShortcutString(event: event)
             //通知监听
-            if(self.shortcutManager.check(appIdentifier: self.item.appIdentifier, shortcuKey: shortcut)) {
+            if(KeyboardMonitorSingleton.shared.check(appIdentifier: self.item.appIdentifier, shortcuKey: shortcut)) {
                 // 更新按下的快捷键
                 item.shortcutKey = shortcut
                 saveItem()
-                print("更新快捷键\(shortcut)")
             }else {
                 print("快捷键冲突")
             }
@@ -131,7 +123,7 @@ struct AppShortcutEditorView: View {
     
     // 实时保存数据
     private func saveItem() {
-       self.shortcutManager.setItem(item: self.item)
+        KeyboardMonitorSingleton.shared.setItem(item: self.item)
     }
 
     // 停止按键监听
@@ -141,6 +133,5 @@ struct AppShortcutEditorView: View {
             monitor = nil
         }
         isListeningForKeyPress = false // 停止监听
-        print("关闭监听")
     }
 }

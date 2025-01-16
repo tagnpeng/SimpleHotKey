@@ -1,16 +1,27 @@
+//
+//  Singleton.swift
+//  SimpleHotKey
+//
+//  Created by tang on 2025/1/16.
+//
 import AppKit
 import SwiftUICore
 import Combine
 import Foundation
 import Cocoa
 
-class ShortcutManager {
-//    private var items: [Item] = [] // 动态从 Item 数据加载快捷键配置
+final class KeyboardMonitorSingleton {
     private var isMonitoring = false // 是否正在监听
-    var itemDict =  [String: Item]()
+    private var eventTap: CFMachPort? // 添加 CGEventTap 变量
+    private var runLoopSource: CFRunLoopSource? // RunLoop Source 引用
+    private var itemDict =  [String: Item]()
+    static let shared = KeyboardMonitorSingleton()
+    
+    private init() {
+        print("单例初始化")
+    }
     
     func setItem(items: [Item]) {
-//        self.items = items
         if !items.isEmpty {
             itemDict = Dictionary(uniqueKeysWithValues: items.map { ($0.shortcutKey, $0) })
         }
@@ -39,7 +50,6 @@ class ShortcutManager {
         }
     }
     
-    /// 启动全局按键监听
     func startListening() {
         let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         let accessEnabled = AXIsProcessTrustedWithOptions(options)
@@ -51,23 +61,48 @@ class ShortcutManager {
         guard !isMonitoring else { return }
         isMonitoring = true
         
-        // 全局监听
-        NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            self?.handleKeyPress(event: event)
+        // 添加 CGEventTap 部分
+        let eventMask: CGEventMask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue)
+        
+        let eventCallback: CGEventTapCallBack = { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
+            if type == .keyDown {
+                let manager = Unmanaged<KeyboardMonitorSingleton>.fromOpaque(refcon!).takeUnretainedValue()
+                manager.handleCGKeyPress(event: event)
+            }
+            return Unmanaged.passRetained(event)
         }
         
-        // 局部监听
-        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            self?.handleKeyPress(event: event)
-            return event // 返回事件，确保按键事件正常传递给其他处理器
+        eventTap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: eventMask,
+            callback: eventCallback,
+            userInfo: Unmanaged.passUnretained(self).toOpaque()
+        )
+        
+        guard let tap = eventTap else {
+            print("无法创建 CGEventTap")
+            return
         }
         
-        print("已启动监听")
+        runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
+        CGEvent.tapEnable(tap: tap, enable: true)
+        print("CGEventTap 全局监听已启动")
     }
+    
+    private func handleCGKeyPress(event: CGEvent) {
+        guard let keyEvent = NSEvent(cgEvent: event) else { return }
+        
+        DispatchQueue.main.async {
+            self.handleKeyPress(event: keyEvent)
+        }
+    }
+    
     
     private func handleKeyPress(event: NSEvent) {
         guard let characters = event.charactersIgnoringModifiers else { return }
-//        let shortcut = createShortcutString(characters: characters, flags: event.modifierFlags)
         let shortcut =  createShortcutString(event: event)
         print("按下的快捷键字符串: \(shortcut)")
         
@@ -121,20 +156,29 @@ class ShortcutManager {
     /// 停止监听
     func stopListening() {
         isMonitoring = false
-        print("Stopped listening for shortcuts.")
+        // 停止 CGEventTap 部分
+        if let tap = eventTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+            if let source = runLoopSource {
+                CFRunLoopRemoveSource(CFRunLoopGetCurrent(), source, .commonModes)
+            }
+            eventTap = nil
+            runLoopSource = nil
+            print("CGEventTap 全局监听已停止")
+        }
     }
     
-    private func createShortcutString(event: NSEvent) -> String {
+    func createShortcutString(event: NSEvent) -> String {
         var shortcut = ""
         let flags = event.modifierFlags
         let keyCode = event.keyCode
-
+        
         // 添加修饰键
         if flags.contains(.command) { shortcut += "Cmd+" }
         if flags.contains(.shift) { shortcut += "Shift+" }
         if flags.contains(.control) { shortcut += "Ctrl+" }
         if flags.contains(.option) { shortcut += "Opt+" }
-
+        
         // 按键映射
         switch keyCode {
         case 0x12: shortcut += "1"  // 物理键 "1"
@@ -147,7 +191,7 @@ class ShortcutManager {
         case 0x1C: shortcut += "8"  // 物理键 "8"
         case 0x19: shortcut += "9"  // 物理键 "9"
         case 0x1D: shortcut += "0"  // 物理键 "0"
-
+            
         case 0x7A: shortcut += "F1"  // 功能键 F1
         case 0x78: shortcut += "F2"  // 功能键 F2
         case 0x63: shortcut += "F3"  // 功能键 F3
@@ -160,18 +204,18 @@ class ShortcutManager {
         case 0x6D: shortcut += "F10" // 功能键 F10
         case 0x67: shortcut += "F11" // 功能键 F11
         case 0x6F: shortcut += "F12" // 功能键 F12
-
+            
         default:
             // 使用字符作为回退
             shortcut += event.charactersIgnoringModifiers?.uppercased() ?? "Unknown"
         }
-
+        
         return shortcut
     }
-
+    
     
     /// 将按键事件解析为快捷键字符串
-    private func createShortcutString(characters: String, flags: NSEvent.ModifierFlags) -> String {
+    func createShortcutString(characters: String, flags: NSEvent.ModifierFlags) -> String {
         var shortcut = ""
         if flags.contains(.command) { shortcut += "Cmd+" }
         if flags.contains(.shift) { shortcut += "Shift+" }
@@ -182,7 +226,7 @@ class ShortcutManager {
     }
     
     //完美实现，但是需要关闭沙箱
-    func bringAppToFront(appIdentifier: String) {
+    private func bringAppToFront(appIdentifier: String) {
         // 减少延迟，且确保不进行不必要的等待
         let script = """
         tell application "System Events"
@@ -197,7 +241,7 @@ class ShortcutManager {
                 end tell
             end if
         end tell
-
+        
         tell application id "\(appIdentifier)"
             -- 窗口排序部分仍然执行
             set windowCount to count of windows
@@ -208,7 +252,7 @@ class ShortcutManager {
             end if
         end tell
         """
-
+        
         // 使用 `Process` 执行 osascript，确保最小化处理过程的延迟
         let process = Process()
         process.launchPath = "/usr/bin/osascript"
