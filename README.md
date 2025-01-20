@@ -45,4 +45,4 @@
 
 ## 许可协议
 
-本程序采用 [MIT License](https://opensource.org/licenses/MIT) 许可证，详细内容请参阅附带的 LICENSE 文件。
+本程序采用 [GPL License](https://www.gnu.org/licenses/) 许可证，详细内容请参阅附带的 LICENSE 文件。
